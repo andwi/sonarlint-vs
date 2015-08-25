@@ -184,13 +184,15 @@ nav a:hover {
 
 .release-date,
 .release-notes,
-.release-download{
+.release-download,
+.release-goto-latest {
     padding-bottom: 4px;
     display: block;
 }
 .release-date:before,
 .release-notes:before,
-.release-download:before{
+.release-download:before,
+.release-goto-latest:before {
     content: '\f073';
     color: #888888;
     font-family: FontAwesome;
@@ -202,6 +204,9 @@ nav a:hover {
 }
 .release-download:before{
     content: '\f019';
+}
+.release-goto-latest:before{
+    content: '\f071';
 }
 
 @media (max-width: 1000px) {

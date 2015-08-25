@@ -79,7 +79,7 @@ var Controllers;
                 listItems += '<li><a href="#version=' + this.currentVersion + '&ruleId=' + this.currentRules[i].Key + '" title="' + this.currentRules[i].Title + '">' + this.currentRules[i].Title + '</a></li>';
             }
             document.getElementById("rule-version").innerHTML =
-                '<a href="/rules/index.html#version=' + this.currentVersion + '" >in version ' + this.currentVersion + '</a>';
+                '<a href="index.html#version=' + this.currentVersion + '" >in version ' + this.currentVersion + '</a>';
             menu.innerHTML = listItems;
             menu.setAttribute("data-version", this.currentVersion);
         };
