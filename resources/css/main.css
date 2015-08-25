@@ -70,6 +70,9 @@ section.split.last {
     section.split .text {
         width: 470px;
     }
+    section.split .text.wide {
+        width: 100%;
+    }
 
     section.split .image {
         width: 0px;
@@ -145,8 +148,19 @@ section.split .text p {
     padding-bottom: 10px;
 }
 
+.bold{
+    font-weight: bold;
+}
+
 section.split ul {
     text-align: center;
+}
+
+#News ul {
+    text-align: left;
+}
+#News li {
+    padding-top: 20px;
 }
 
 #Description .text {
@@ -251,6 +265,7 @@ section.split ul {
         float: none;
     }
 
+    section.split .text.wide,
     section.split .text.left,
     section.split .text.right {
         padding-left: 20px;
