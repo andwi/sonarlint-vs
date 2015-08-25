@@ -7,7 +7,7 @@ footer{
 
 header,
 footer,
-.sidebar{
+#sidebar{
     position: fixed;
     z-index: 100;
     background: rgb(243, 243, 243);
@@ -33,7 +33,7 @@ nav a:hover {
 }
 
 
-.sidebar
+#sidebar
 {
     font-size: 13px;
     width: 300px;
@@ -42,13 +42,7 @@ nav a:hover {
     bottom:27px;
 }
 
-    .sidebar > div > span {
-        padding: 10px 5px 5px 5px;
-        font-size: 16px;
-        display: block;
-    }
-
-.sidebar:after{
+#sidebar:after{
     background-color: #ddd;
 	content: "";
 	display: block;
@@ -59,13 +53,13 @@ nav a:hover {
 	right: 0;
 }
 
-.content {
+#content {
     margin-left: 300px;
     font-size: 14px;
     padding-top: 40px;
     padding-bottom: 27px;
 }
-.content:after{
+#content:after{
     background-color: #ddd;
 	content: "";
 	display: block;
@@ -76,23 +70,21 @@ nav a:hover {
 	left: -1px;
 }
 
-
-
 /*rule specific*/
 
-.content h1 {
+#content h1 {
     margin: 0;
     font-size: 25px;
     line-height: 1.5;
 }
 
-.content h2 {
+#content h2 {
     font-size: 20px;
     line-height: 25px;
     margin-top: 30px;
 }
 
-.content pre {
+#content pre {
     padding: 10px;
     border: 1px solid #e6e6e6;
     line-height: 18px;
@@ -103,54 +95,54 @@ nav a:hover {
     background-color: white;
 }
 
-.content code {
+#content code {
     font-weight: 600;
     font-family: Consolas,"Liberation Mono",Menlo,Courier,monospace;
     font-size: 12px;
     line-height: 18px;
 }
 
-.content .rule-details {
+#content .rule-details {
     padding: 10px;
 }
 
-.content .rule-description {
+#content .rule-description {
     margin-top: 18px;
 }
 
-.content .rule-meta .id {
+#content .rule-meta .id {
     color: #777;
     font-size: 12px;
     margin: 0;
     padding: 0;
 }
 
-.content ul {
+#content ul {
     padding-left: 40px;
     list-style: disc;
     margin: 1em 0;
 }
 
-.sidebar a{
+#sidebar a{
     border-bottom: 0;
 }
 
-.sidebar > div  {
+#sidebar > div  {
     overflow-x: hidden;
     white-space: nowrap;
     padding: 5px 0 5px;
     height:100%;
 }
 
-.sidebar li:nth-child(2n) {
+#sidebar li:nth-child(2n) {
     background-color: white;
 }
 
-.sidebar li {
+#sidebar li {
     position:relative;
     padding: 1px 5px;
 }
-.sidebar li:after {
+#sidebar li:after {
   content: " ";
   position: absolute;
   top: 0;
@@ -168,19 +160,30 @@ nav a:hover {
     text-decoration: none;
 }
 
-#sidebar-container > span{
+#sidebar-container > span {
+    padding: 10px 5px 5px 5px;
+    font-size: 16px;
     display: inline-block;
 }
-#rule-count{
+
+#sidebar-container > #rule-count{
     font-size: 12px;
 }
 
+#sidebar-resizer{
+    background-color:#e6e6e6;
+    height:100%;
+    float: right;
+    width: 5px;
+    cursor: col-resize;
+}
+
 @media (max-width: 1000px) {
-    .sidebar
+    #sidebar
     {
         width: 250px;
     }
-    .content {
+    #content {
         margin-left: 250px;
     }
 

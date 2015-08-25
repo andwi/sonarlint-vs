@@ -31,6 +31,28 @@ module Controllers {
             }
 
             this.openRequestedPage(hash);
+            this.handleSidebarResizing();
+        }
+
+        private handleSidebarResizing() {
+            var min = 150;
+            var max = 750;
+            var mainmin = 200;
+
+            $('#sidebar-resizer').mousedown(function (e) {
+                e.preventDefault();
+                $(document).mousemove(function (e) {
+                    e.preventDefault();
+                    var x = e.pageX - $('#sidebar').offset().left;
+                    if (x > min && x < max && e.pageX < ($(window).width() - mainmin)) {
+                        $('#sidebar').css("width", x);
+                        $('#content').css("margin-left", x);
+                    }
+                })
+            });
+            $(document).mouseup(function (e) {
+                $(document).unbind('mousemove');
+            });
         }
 
         public openRequestedPage(hash: UrlParams) {

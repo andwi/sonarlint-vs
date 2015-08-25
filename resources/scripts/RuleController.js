@@ -16,7 +16,27 @@ var Controllers;
                 hash.ruleId = parsedHash.ruleId;
             }
             this.openRequestedPage(hash);
+            this.handleSidebarResizing();
         }
+        RuleController.prototype.handleSidebarResizing = function () {
+            var min = 150;
+            var max = 750;
+            var mainmin = 200;
+            $('#sidebar-resizer').mousedown(function (e) {
+                e.preventDefault();
+                $(document).mousemove(function (e) {
+                    e.preventDefault();
+                    var x = e.pageX - $('#sidebar').offset().left;
+                    if (x > min && x < max && e.pageX < ($(window).width() - mainmin)) {
+                        $('#sidebar').css("width", x);
+                        $('#content').css("margin-left", x);
+                    }
+                });
+            });
+            $(document).mouseup(function (e) {
+                $(document).unbind('mousemove');
+            });
+        };
         RuleController.prototype.openRequestedPage = function (hash) {
             if (!hash.version) {
                 this.handleVersionError();

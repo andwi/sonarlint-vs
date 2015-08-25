@@ -37,13 +37,14 @@
         </nav>
     </header>
     <main>
-        <div class="sidebar">
+        <div id="sidebar">
+            <div id="sidebar-resizer"></div>
             <div id="sidebar-container">
                 <span>List of rules</span> <span id="rule-count">(count: 0)</span>
                 <ul data-version="" id="rule-menu"></ul>
             </div>
         </div>
-        <div class="content">
+        <div id="content">
             <div class="rule-details">
                 <div class="rule-meta">
                     <h1 id="rule-title"></h1>
@@ -63,6 +64,7 @@
             SonarLint is powered by <a href="http://www.sonarsource.com" target="SonarSource SA">SonarSource SA</a>
         </div>
     </footer>
+    <script src="../resources/scripts/jquery-2.1.4.min.js"></script>
     <script src="../resources/scripts/RuleController.js"></script>
     <script src="../resources/scripts/App.js"></script>
 </body>
