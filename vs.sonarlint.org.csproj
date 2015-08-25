@@ -43,6 +43,9 @@
     <Content Include="resources\images\vs.png" />
     <Content Include="resources\images\waves-sonarqube-256.png" />
     <Content Include="resources\images\waves-sonarqube-28.png" />
+    <Content Include="rules\1.0.0\index.html" />
+    <Content Include="rules\1.1.0\index.html" />
+    <Content Include="rules\1.2.0\index.html" />
     <Content Include="rules\index.html" />
   </ItemGroup>
   <ItemGroup>

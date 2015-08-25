@@ -1,12 +1,11 @@
 var Controllers;
 (function (Controllers) {
     var RuleController = (function () {
-        function RuleController(defaultVersion, defaultRule) {
+        function RuleController(defaultVersion) {
             this.defaultVersion = defaultVersion;
-            this.defaultRule = defaultRule;
             var hash = {
                 version: this.defaultVersion,
-                ruleId: this.defaultRule
+                ruleId: null
             };
             var parsedHash = this.parseHash();
             if (parsedHash.version) {
@@ -49,13 +48,16 @@ var Controllers;
             }
             //display page:
             var self = this;
-            this.getRulesJson(requestedVersion, function () {
+            this.getContentsForVersion(requestedVersion, function () {
                 self.displayMenu(hash);
                 if (!hash.ruleId) {
-                    self.handleRuleIdError(false);
-                    return;
+                    self.displayMainPage();
+                    document.title = 'SonarLint for Visual Studio - Version ' + hash.version;
                 }
-                self.displayRulePage(hash);
+                else {
+                    self.displayRulePage(hash);
+                    document.title = 'SonarLint for Visual Studio - Rule ' + hash.ruleId;
+                }
             });
         };
         RuleController.prototype.parseHash = function () {
@@ -76,14 +78,21 @@ var Controllers;
             for (var i = 0; i < this.currentRules.length; i++) {
                 listItems += '<li><a href="#version=' + this.currentVersion + '&ruleId=' + this.currentRules[i].Key + '" title="' + this.currentRules[i].Title + '">' + this.currentRules[i].Title + '</a></li>';
             }
-            document.getElementById("rule-count").innerHTML = '(count: ' + this.currentRules.length + ')';
+            document.getElementById("rule-version").innerHTML =
+                '<a href="/rules/index.html#version=' + this.currentVersion + '" >in version ' + this.currentVersion + '</a>';
             menu.innerHTML = listItems;
             menu.setAttribute("data-version", this.currentVersion);
+        };
+        RuleController.prototype.displayMainPage = function () {
+            var doc = document.documentElement;
+            var left = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
+            document.getElementById("content").innerHTML = this.currentDefaultContent;
+            window.scrollTo(left, 0);
+            return;
         };
         RuleController.prototype.displayRulePage = function (hash) {
             var doc = document.documentElement;
             var left = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
-            var top = (window.pageYOffset || doc.scrollTop) - (doc.clientTop || 0);
             for (var i = 0; i < this.currentRules.length; i++) {
                 if (this.currentRules[i].Key == hash.ruleId) {
                     //we have found it
@@ -130,7 +139,7 @@ var Controllers;
         RuleController.prototype.hashChanged = function () {
             var hash = {
                 version: this.defaultVersion,
-                ruleId: this.defaultRule
+                ruleId: null
             };
             var parsedHash = this.parseHash();
             if (parsedHash.version) {
@@ -141,20 +150,37 @@ var Controllers;
             }
             this.openRequestedPage(hash);
         };
-        RuleController.prototype.getRulesJson = function (version, callback) {
+        RuleController.prototype.getContentsForVersion = function (version, callback) {
             if (this.currentVersion != version) {
+                var numberOfCompletedRequests = 0;
                 var self = this;
                 //load file
-                this.loadJSON('../rules/' + version + '/rules.json', function (jsonString) {
+                this.getFile('../rules/' + version + '/rules.json', function (jsonString) {
                     self.currentVersion = version;
                     self.currentRules = JSON.parse(jsonString);
-                    callback();
+                    numberOfCompletedRequests++;
+                    if (numberOfCompletedRequests == 2) {
+                        callback();
+                    }
+                });
+                this.getFile('../rules/' + version + '/index.html', function (data) {
+                    self.currentDefaultContent = data;
+                    numberOfCompletedRequests++;
+                    if (numberOfCompletedRequests == 2) {
+                        callback();
+                    }
                 });
                 return;
             }
             callback();
         };
-        RuleController.prototype.loadJSON = function (path, callback) {
+        RuleController.prototype.getFile = function (path, callback) {
+            var self = this;
+            this.loadFile(path, function (data) {
+                callback(data);
+            });
+        };
+        RuleController.prototype.loadFile = function (path, callback) {
             var self = this;
             var xobj = new XMLHttpRequest();
             xobj.open('GET', path, true);

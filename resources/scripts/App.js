@@ -19,6 +19,6 @@ var App = (function () {
     return App;
 })();
 window.onload = function () {
-    App.Controller = new Controllers.RuleController("1.2.0", "S1764");
+    App.Controller = new Controllers.RuleController("1.2.0");
 };
 //# sourceMappingURL=App.js.map

@@ -13,14 +13,12 @@ interface Rule {
 module Controllers {
     export class RuleController {
         defaultVersion: string;
-        defaultRule: string;
 
-        constructor(defaultVersion: string, defaultRule: string) {
+        constructor(defaultVersion: string) {
             this.defaultVersion = defaultVersion;
-            this.defaultRule = defaultRule;
             var hash: UrlParams = {
                 version: this.defaultVersion,
-                ruleId: this.defaultRule
+                ruleId: null
             };
             var parsedHash = this.parseHash();
             if (parsedHash.version) {
@@ -70,16 +68,17 @@ module Controllers {
 
             //display page:
             var self = this;
-            this.getRulesJson(requestedVersion, () => {
+            this.getContentsForVersion(requestedVersion, () => {
                 self.displayMenu(hash);
 
-                if (!hash.ruleId)
-                {
-                    self.handleRuleIdError(false);
-                    return;
+                if (!hash.ruleId) {
+                    self.displayMainPage();
+                    document.title = 'SonarLint for Visual Studio - Version ' + hash.version;
                 }
-
-                self.displayRulePage(hash);
+                else {
+                    self.displayRulePage(hash);
+                    document.title = 'SonarLint for Visual Studio - Rule ' + hash.ruleId;
+                }
             });
         }
 
@@ -109,16 +108,26 @@ module Controllers {
                 listItems += '<li><a href="#version=' + this.currentVersion + '&ruleId=' + this.currentRules[i].Key + '" title="' + this.currentRules[i].Title + '">' + this.currentRules[i].Title + '</a></li>';
             }
 
-            document.getElementById("rule-count").innerHTML = '(count: ' + this.currentRules.length + ')';
+            document.getElementById("rule-version").innerHTML =
+                '<a href="/rules/index.html#version=' + this.currentVersion + '" >in version ' + this.currentVersion + '</a>';
 
             menu.innerHTML = listItems;
             menu.setAttribute("data-version", this.currentVersion);
         }
 
+        private displayMainPage() {
+            var doc = document.documentElement;
+            var left = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
+
+            document.getElementById("content").innerHTML = this.currentDefaultContent;
+
+            window.scrollTo(left, 0);
+            return;
+        }
+
         private displayRulePage(hash: UrlParams) {
             var doc = document.documentElement;
             var left = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
-            var top = (window.pageYOffset || doc.scrollTop) - (doc.clientTop || 0);
 
             for (var i = 0; i < this.currentRules.length; i++) {
                 if (this.currentRules[i].Key == hash.ruleId) {
@@ -174,7 +183,7 @@ module Controllers {
         {
             var hash: UrlParams = {
                 version: this.defaultVersion,
-                ruleId: this.defaultRule
+                ruleId: null
             };
             var parsedHash = this.parseHash();
             if (parsedHash.version) {
@@ -188,23 +197,43 @@ module Controllers {
 
         currentVersion: string;
         currentRules: Rule[];
-        private getRulesJson(version: string, callback: Function)
+        currentDefaultContent: string;
+        private getContentsForVersion(version: string, callback: Function)
         {
             if (this.currentVersion != version)
             {
+                var numberOfCompletedRequests = 0;
                 var self = this;
                 //load file
-                this.loadJSON('../rules/'+version+'/rules.json',(jsonString) => {
+                this.getFile('../rules/' + version + '/rules.json', (jsonString) => {
                     self.currentVersion = version;
                     self.currentRules = JSON.parse(jsonString);
-                    callback();
+                    numberOfCompletedRequests++;
+                    if (numberOfCompletedRequests == 2) {
+                        callback();
+                    }
+                });
+                this.getFile('../rules/' + version + '/index.html', (data) => {
+                    self.currentDefaultContent = data;
+                    numberOfCompletedRequests++;
+                    if (numberOfCompletedRequests == 2) {
+                        callback();
+                    }
                 });
                 return;
             }
 
             callback();
         }
-        loadJSON(path: string, callback: Function) {
+
+        private getFile(path: string, callback: Function) {
+            var self = this;
+            this.loadFile(path, (data) => {
+                callback(data);
+            });
+        }
+
+        private loadFile(path: string, callback: Function) {
             var self = this;
             var xobj = new XMLHttpRequest();
             xobj.open('GET', path, true);

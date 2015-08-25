@@ -36,7 +36,7 @@ nav a:hover {
 #sidebar
 {
     font-size: 13px;
-    width: 300px;
+    width: 370px;
     float:left;
     top:40px;
     bottom:27px;
@@ -54,7 +54,7 @@ nav a:hover {
 }
 
 #content {
-    margin-left: 300px;
+    margin-left: 370px;
     font-size: 14px;
     padding-top: 40px;
     padding-bottom: 27px;
@@ -166,8 +166,8 @@ nav a:hover {
     display: inline-block;
 }
 
-#sidebar-container > #rule-count{
-    font-size: 12px;
+#sidebar-container > #rule-version {
+    font-size: 11px;
 }
 
 #sidebar-resizer{
@@ -176,6 +176,32 @@ nav a:hover {
     float: right;
     width: 5px;
     cursor: col-resize;
+}
+
+#content ul.release{
+    padding-left: 0px;
+}
+
+.release-date,
+.release-notes,
+.release-download{
+    padding-bottom: 4px;
+    display: block;
+}
+.release-date:before,
+.release-notes:before,
+.release-download:before{
+    content: '\f073';
+    color: #888888;
+    font-family: FontAwesome;
+    margin: 0 4px 0 0;
+    text-decoration: none;
+}
+.release-notes:before{
+    content: '\f09b';
+}
+.release-download:before{
+    content: '\f019';
 }
 
 @media (max-width: 1000px) {
