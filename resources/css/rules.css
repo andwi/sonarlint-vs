@@ -131,18 +131,14 @@ nav a:hover {
     overflow-x: hidden;
     white-space: nowrap;
     padding: 5px 0 5px;
-    height:100%;
+    height: 100%;
 }
 
-#sidebar li:nth-child(2n) {
-    background-color: white;
-}
-
-#sidebar li {
+#rule-menu li {
     position:relative;
     padding: 1px 5px;
 }
-#sidebar li:after {
+#rule-menu li:after {
   content: " ";
   position: absolute;
   top: 0;
@@ -153,6 +149,49 @@ nav a:hover {
   background-image: linear-gradient(to right,rgba(243,243,243,0),#f3f3f3 75%);
 }
 
+#rule-menu-filter {
+    white-space: normal;
+    padding: 5px;
+}
+
+#rule-menu-filter > h3,
+#rule-menu-filter li {
+    display: inline-block;
+}
+#rule-menu-filter > h3 {
+    padding-right: 5px;
+}
+
+#rule-menu-filter input {
+    position: absolute;
+    margin-left: -9999px;
+    visibility: hidden;
+}
+#rule-menu-filter input+label {
+    display: block;
+    position: relative;
+    cursor: pointer;
+    outline: none;
+    user-select: none;
+    padding-left: 5px;
+
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+#rule-menu-filter input+label:before {
+    content: '\f204';
+    color: rgb(68, 68, 68);
+    font-family: FontAwesome;
+    margin: 0 4px 0 0;
+    text-decoration: none;
+}
+#rule-menu-filter input:checked+label:before {
+    content: '\f205';
+}
+
 .tags:before{
     content: '\f02c';
     font-family: FontAwesome;
@@ -160,13 +199,13 @@ nav a:hover {
     text-decoration: none;
 }
 
-#sidebar-container > span {
+#rule-menu-header > h2 {
     padding: 10px 5px 5px 5px;
-    font-size: 16px;
+    font-size: 20px;
     display: inline-block;
 }
 
-#sidebar-container > #rule-version {
+#rule-menu-header > #rule-version {
     font-size: 11px;
 }
 
@@ -194,7 +233,7 @@ nav a:hover {
 .release-download:before,
 .release-goto-latest:before {
     content: '\f073';
-    color: #888888;
+    color: rgb(68, 68, 68);
     font-family: FontAwesome;
     margin: 0 4px 0 0;
     text-decoration: none;
@@ -210,8 +249,7 @@ nav a:hover {
 }
 
 @media (max-width: 1000px) {
-    #sidebar
-    {
+    #sidebar {
         width: 250px;
     }
     #content {

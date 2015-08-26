@@ -3,20 +3,33 @@ var Controllers;
     var RuleController = (function () {
         function RuleController(defaultVersion) {
             this.defaultVersion = defaultVersion;
-            var hash = {
-                version: this.defaultVersion,
-                ruleId: null
-            };
-            var parsedHash = this.parseHash();
-            if (parsedHash.version) {
-                hash.version = parsedHash.version;
-            }
-            if (parsedHash.ruleId) {
-                hash.ruleId = parsedHash.ruleId;
-            }
+            var hash = this.getHash(location.hash || '');
             this.openRequestedPage(hash);
             this.handleSidebarResizing();
+            this.handleFilterToggle();
         }
+        RuleController.prototype.handleFilterToggle = function () {
+            var _this = this;
+            $('#rule-menu-filter ul').on('change', 'input', function (event) {
+                var item = $(event.currentTarget);
+                var checked = item.prop('checked');
+                var newHash = _this.getHash(location.hash || '');
+                newHash.tags = _this.getFilterSettings();
+                location.hash = _this.changeHash(newHash);
+            });
+        };
+        RuleController.prototype.getFilterSettings = function () {
+            var turnedOnFilters = [];
+            var inputs = $('#rule-menu-filter ul input');
+            inputs.each(function (index, elem) {
+                var item = $(elem);
+                var checked = item.prop('checked');
+                if (checked) {
+                    turnedOnFilters.push(item.attr('id'));
+                }
+            });
+            return turnedOnFilters;
+        };
         RuleController.prototype.handleSidebarResizing = function () {
             var min = 150;
             var max = 750;
@@ -37,6 +50,7 @@ var Controllers;
             });
         };
         RuleController.prototype.openRequestedPage = function (hash) {
+            var _this = this;
             if (!hash.version) {
                 this.handleVersionError();
                 return;
@@ -47,108 +61,200 @@ var Controllers;
                 return;
             }
             //display page:
-            var self = this;
             this.getContentsForVersion(requestedVersion, function () {
-                self.displayMenu(hash);
+                _this.renderMenu(hash);
                 if (!hash.ruleId) {
-                    self.displayMainPage();
+                    _this.renderMainPage(hash);
+                    _this.fixRuleLinks(hash);
                     document.title = 'SonarLint for Visual Studio - Version ' + hash.version;
                 }
                 else {
-                    self.displayRulePage(hash);
+                    _this.renderRulePage(hash);
+                    _this.fixRuleLinks(hash);
                     document.title = 'SonarLint for Visual Studio - Rule ' + hash.ruleId;
                 }
             });
         };
-        RuleController.prototype.parseHash = function () {
-            var hash = (location.hash || '').replace(/^#/, '').split('&'), parsed = {};
-            for (var i = 0, el; i < hash.length; i++) {
-                el = hash[i].split('=');
-                parsed[el[0]] = el[1];
-            }
-            return parsed;
-        };
-        RuleController.prototype.displayMenu = function (hash) {
-            var menu = document.getElementById("rule-menu");
-            var currentVersion = menu.getAttribute("data-version");
+        RuleController.prototype.renderMenu = function (hash) {
+            var menu = $("#rule-menu");
+            var currentVersion = menu.attr("data-version");
             if (currentVersion == this.currentVersion) {
+                this.applyFilters(hash);
                 return;
             }
-            var listItems = '';
+            menu.empty();
             for (var i = 0; i < this.currentRules.length; i++) {
-                listItems += '<li><a href="#version=' + this.currentVersion + '&ruleId=' + this.currentRules[i].Key + '" title="' + this.currentRules[i].Title + '">' + this.currentRules[i].Title + '</a></li>';
+                var li = $(Template.eval(Template.RuleMenuItem, {
+                    currentVersion: this.currentVersion,
+                    rule: this.currentRules[i]
+                }));
+                li.data('rule', this.currentRules[i]);
+                menu.append(li);
             }
-            document.getElementById("rule-version").innerHTML =
-                '<a href="index.html#version=' + this.currentVersion + '" >in version ' + this.currentVersion + '</a>';
-            menu.innerHTML = listItems;
-            menu.setAttribute("data-version", this.currentVersion);
+            menu.attr("data-version", this.currentVersion);
+            $("#rule-menu-header").html(Template.eval(Template.RuleMenuHeaderVersion, this));
+            this.renderFilters(hash);
         };
-        RuleController.prototype.displayMainPage = function () {
-            var doc = document.documentElement;
-            var left = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
-            document.getElementById("content").innerHTML = this.currentDefaultContent;
-            window.scrollTo(left, 0);
-            return;
+        RuleController.prototype.renderMainPage = function (hash) {
+            this.renderMainContent(this.currentDefaultContent, hash);
         };
-        RuleController.prototype.displayRulePage = function (hash) {
-            var doc = document.documentElement;
-            var left = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
+        RuleController.prototype.renderRulePage = function (hash) {
             for (var i = 0; i < this.currentRules.length; i++) {
                 if (this.currentRules[i].Key == hash.ruleId) {
-                    //we have found it
-                    var ruleId = document.getElementById("rule-id");
-                    ruleId.innerHTML = 'Rule ID: ' + this.currentRules[i].Key;
-                    ruleId.style.visibility = 'visible';
-                    document.getElementById("rule-title").innerHTML = this.currentRules[i].Title;
-                    var tags = document.getElementById("rule-tags");
-                    tags.innerHTML = this.currentRules[i].Tags;
-                    if (this.currentRules[i].Tags) {
-                        tags.style.visibility = 'visible';
-                    }
-                    else {
-                        tags.style.visibility = 'hidden';
-                    }
-                    document.getElementById("rule-description").innerHTML = this.currentRules[i].Description;
-                    window.scrollTo(left, 0);
+                    this.renderMainContent(Template.eval(Template.RulePageContent, this.currentRules[i]), hash);
                     return;
                 }
             }
             this.handleRuleIdError(false);
         };
-        RuleController.prototype.handleRuleIdError = function (hasMenuIssueToo) {
-            if (!hasMenuIssueToo) {
-                var ruleId = document.getElementById("rule-id");
-                ruleId.innerHTML = "ERROR: couldn't find rule";
-                ruleId.style.visibility = 'visible';
+        RuleController.prototype.renderMainContent = function (content, hash) {
+            var doc = document.documentElement;
+            var left = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
+            document.getElementById("content").innerHTML = content;
+            this.fixRuleLinks(hash);
+            window.scrollTo(left, 0);
+        };
+        RuleController.prototype.renderFilters = function (hash) {
+            var filterList = $('#rule-menu-filter > ul');
+            filterList.empty();
+            for (var i = 0; i < 10; i++) {
+                var filter = Template.eval(Template.RuleFilterElement, { tag: this.currentAllTags[i].Tag });
+                filterList.append($(filter));
             }
-            document.getElementById("rule-title").innerHTML = "";
-            var tags = document.getElementById("rule-tags");
-            tags.innerHTML = "";
-            tags.style.visibility = 'hidden';
-            document.getElementById("rule-description").innerHTML = "";
+            var others = Template.eval(Template.RuleFilterElement, { tag: 'others' });
+            filterList.append($(others));
+            this.applyFilters(hash);
+        };
+        RuleController.prototype.applyFilters = function (hash) {
+            var _this = this;
+            $('#rule-menu-filter input').each(function (index, elem) {
+                var input = $(elem);
+                input.prop('checked', $.inArray(input.attr('id'), hash.tags) != -1);
+            });
+            var tagsToFilterFor = this.getTagsToFilterFromHash(hash);
+            var tagsWithOwnCheckbox = $('#rule-menu-filter input').map(function (index, element) { return $(element).attr('id'); }).toArray();
+            tagsWithOwnCheckbox.splice(tagsWithOwnCheckbox.indexOf('others'), 1);
+            var filterForOthers = hash.tags.indexOf('others') != -1;
+            if (filterForOthers) {
+                tagsToFilterFor.splice(tagsToFilterFor.indexOf('others'), 1);
+                var others = this.diff($.map(this.currentAllTags, function (element, index) { return element.Tag; }), tagsWithOwnCheckbox);
+                tagsToFilterFor = tagsToFilterFor.concat(others);
+            }
+            $('#rule-menu li').each(function (index, elem) {
+                var li = $(elem);
+                var liTags = li.data('rule').Tags;
+                var commonTags = _this.intersect(liTags.split(','), tagsToFilterFor);
+                var hasNoTags = liTags.length == 0;
+                var showLiWithNoTags = hasNoTags && filterForOthers;
+                var showEverything = tagsToFilterFor.length == 0;
+                li.toggle(commonTags.length > 0 || showLiWithNoTags || showEverything);
+            });
+            $('#rule-menu li:visible').filter(':odd').css({ 'background-color': 'rgb(243, 243, 243)' });
+            $('#rule-menu li:visible').filter(':even').css({ 'background-color': 'white' });
+        };
+        RuleController.prototype.getTagsToFilterFromHash = function (hash) {
+            var tagsToFilter = hash.tags.slice(0);
+            for (var i = tagsToFilter.length - 1; i >= 0; i--) {
+                if (tagsToFilter[i] === '') {
+                    tagsToFilter.splice(i, 1);
+                }
+            }
+            return tagsToFilter;
+        };
+        RuleController.prototype.intersect = function (a, b) {
+            var t;
+            if (b.length > a.length)
+                t = b, b = a, a = t;
+            return a.filter(function (e) {
+                if (b.indexOf(e) !== -1)
+                    return true;
+            });
+        };
+        RuleController.prototype.union = function (a, b) {
+            var x = a.concat(b);
+            return x.filter(function (elem, index) { return x.indexOf(elem) === index; });
+        };
+        RuleController.prototype.diff = function (a, b) {
+            return a.filter(function (i) { return b.indexOf(i) < 0; });
+        };
+        RuleController.prototype.handleRuleIdError = function (hasMenuIssueToo) {
+            if (hasMenuIssueToo) {
+                document.getElementById("content").innerHTML = Template.eval(Template.RuleErrorPageContent, { message: 'Couldn\'t find version' });
+            }
+            else {
+                document.getElementById("content").innerHTML = Template.eval(Template.RuleErrorPageContent, { message: 'Couldn\'t find rule' });
+            }
         };
         RuleController.prototype.handleVersionError = function () {
             this.handleRuleIdError(true);
-            var menu = document.getElementById("rule-menu");
-            menu.innerHTML = "";
-            menu.setAttribute("data-version", "");
-            var ruleId = document.getElementById("rule-id");
-            ruleId.innerHTML = "ERROR: couldn't find version";
-            ruleId.style.visibility = 'visible';
+            var menu = $('#rule-menu');
+            menu.html('');
+            menu.attr('data-version', '');
+            $('#rule-menu-header').html(Template.eval(Template.RuleMenuHeaderVersionError, null));
+            $('#rule-menu-filter').html('');
         };
         RuleController.prototype.hashChanged = function () {
+            var hash = this.getHash(location.hash || '');
+            this.openRequestedPage(hash);
+        };
+        RuleController.prototype.fixRuleLinks = function (hash) {
+            var _this = this;
+            $('.rule-link').each(function (index, elem) {
+                var link = $(elem);
+                var currentHref = link.attr('href');
+                var newHash = _this.getHash(currentHref);
+                newHash.tags = hash.tags;
+                link.attr('href', '#' + _this.changeHash(newHash));
+            });
+        };
+        RuleController.prototype.getHash = function (input) {
             var hash = {
                 version: this.defaultVersion,
-                ruleId: null
+                ruleId: null,
+                tags: null
             };
-            var parsedHash = this.parseHash();
+            var parsedHash = RuleController.parseHash(input);
             if (parsedHash.version) {
                 hash.version = parsedHash.version;
             }
             if (parsedHash.ruleId) {
                 hash.ruleId = parsedHash.ruleId;
             }
-            this.openRequestedPage(hash);
+            var tags = '';
+            if (parsedHash.tags) {
+                tags = parsedHash.tags;
+            }
+            hash.tags = tags.split(',');
+            var emptyIndex = hash.tags.indexOf('');
+            if (emptyIndex >= 0) {
+                hash.tags.splice(emptyIndex);
+            }
+            return hash;
+        };
+        RuleController.parseHash = function (input) {
+            var hash = input.replace(/^#/, '').split('&'), parsed = {};
+            for (var i = 0, el; i < hash.length; i++) {
+                el = hash[i].split('=');
+                parsed[el[0]] = el[1];
+            }
+            return parsed;
+        };
+        RuleController.prototype.changeHash = function (hash) {
+            var newHash = 'version=' + hash.version;
+            if (hash.ruleId) {
+                newHash += '&ruleId=' + hash.ruleId;
+            }
+            if (hash.tags) {
+                var tags = '';
+                for (var i = 0; i < hash.tags.length; i++) {
+                    tags += ',' + hash.tags[i];
+                }
+                if (tags.length > 1) {
+                    tags = tags.substr(1);
+                }
+                newHash += '&tags=' + tags;
+            }
+            return newHash;
         };
         RuleController.prototype.getContentsForVersion = function (version, callback) {
             if (this.currentVersion != version) {
@@ -158,6 +264,36 @@ var Controllers;
                 this.getFile('../rules/' + version + '/rules.json', function (jsonString) {
                     self.currentVersion = version;
                     self.currentRules = JSON.parse(jsonString);
+                    self.currentAllTags = [];
+                    for (var i = 0; i < self.currentRules.length; i++) {
+                        var ruleTags = self.currentRules[i].Tags.split(',');
+                        for (var tagIndex = 0; tagIndex < ruleTags.length; tagIndex++) {
+                            var tag = ruleTags[tagIndex].trim();
+                            var found = false;
+                            for (var j = 0; j < self.currentAllTags.length; j++) {
+                                if (self.currentAllTags[j].Tag == tag) {
+                                    self.currentAllTags[j].Count++;
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found && tag != '') {
+                                self.currentAllTags.push({
+                                    Count: 1,
+                                    Tag: tag
+                                });
+                            }
+                        }
+                    }
+                    self.currentAllTags.sort(function (a, b) {
+                        if (a.Count > b.Count) {
+                            return -1;
+                        }
+                        if (a.Count < b.Count) {
+                            return 1;
+                        }
+                        return 0;
+                    });
                     numberOfCompletedRequests++;
                     if (numberOfCompletedRequests == 2) {
                         callback();

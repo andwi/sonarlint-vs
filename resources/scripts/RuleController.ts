@@ -2,6 +2,7 @@
 {
     version: string;
     ruleId: string;
+    tags: string[];
 }
 interface Rule {
     Key: string;
@@ -9,27 +10,44 @@ interface Rule {
     Description: string;
     Tags: string;
 }
+interface TagFrequency {
+    Tag: string;
+    Count: number;
+}
 
 module Controllers {
     export class RuleController {
         defaultVersion: string;
-
         constructor(defaultVersion: string) {
             this.defaultVersion = defaultVersion;
-            var hash: UrlParams = {
-                version: this.defaultVersion,
-                ruleId: null
-            };
-            var parsedHash = this.parseHash();
-            if (parsedHash.version) {
-                hash.version = parsedHash.version;
-            }
-            if (parsedHash.ruleId) {
-                hash.ruleId = parsedHash.ruleId;
-            }
-
+            var hash = this.getHash(location.hash || '');
             this.openRequestedPage(hash);
             this.handleSidebarResizing();
+            this.handleFilterToggle();
+        }
+
+        private handleFilterToggle() {
+            $('#rule-menu-filter ul').on('change', 'input', (event) => {
+                var item = $(event.currentTarget);
+                var checked = item.prop('checked');
+                var newHash = this.getHash(location.hash || '');
+                newHash.tags = this.getFilterSettings();
+                location.hash = this.changeHash(newHash);
+            });
+        }
+
+        private getFilterSettings(): string[] {
+            var turnedOnFilters = [];
+            var inputs = $('#rule-menu-filter ul input');
+            inputs.each((index, elem) => {
+                var item = $(elem);
+                var checked = item.prop('checked');
+                if (checked) {
+                    turnedOnFilters.push(item.attr('id'));
+                }
+            });
+
+            return turnedOnFilters;
         }
 
         private handleSidebarResizing() {
@@ -67,24 +85,202 @@ module Controllers {
             }
 
             //display page:
-            var self = this;
             this.getContentsForVersion(requestedVersion, () => {
-                self.displayMenu(hash);
+                this.renderMenu(hash);
 
                 if (!hash.ruleId) {
-                    self.displayMainPage();
+                    this.renderMainPage(hash);
+                    this.fixRuleLinks(hash);
                     document.title = 'SonarLint for Visual Studio - Version ' + hash.version;
                 }
                 else {
-                    self.displayRulePage(hash);
+                    this.renderRulePage(hash);
+                    this.fixRuleLinks(hash);
                     document.title = 'SonarLint for Visual Studio - Rule ' + hash.ruleId;
                 }
             });
         }
 
-        private parseHash(): any
-        {
-            var hash = (location.hash || '').replace(/^#/, '').split('&'),
+        private renderMenu(hash: UrlParams) {
+            var menu = $("#rule-menu");
+            var currentVersion = menu.attr("data-version");
+
+            if (currentVersion == this.currentVersion)
+            {
+                this.applyFilters(hash);
+                return;
+            }
+
+            menu.empty();
+
+            for (var i = 0; i < this.currentRules.length; i++) {
+                var li = $(Template.eval(Template.RuleMenuItem, {
+                    currentVersion: this.currentVersion,
+                    rule: this.currentRules[i]
+                }));
+                li.data('rule', this.currentRules[i]);
+                menu.append(li);
+            }
+
+            menu.attr("data-version", this.currentVersion);
+            $("#rule-menu-header").html(Template.eval(Template.RuleMenuHeaderVersion, this));
+
+            this.renderFilters(hash);
+        }
+        private renderMainPage(hash: UrlParams) {
+            this.renderMainContent(this.currentDefaultContent, hash);
+        }
+        private renderRulePage(hash: UrlParams) {
+            for (var i = 0; i < this.currentRules.length; i++) {
+                if (this.currentRules[i].Key == hash.ruleId) {
+                    this.renderMainContent(Template.eval(Template.RulePageContent, this.currentRules[i]), hash);
+                    return;
+                }
+            }
+            this.handleRuleIdError(false);
+        }
+
+        private renderMainContent(content: string, hash: UrlParams) {
+            var doc = document.documentElement;
+            var left = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
+
+            document.getElementById("content").innerHTML = content;
+            this.fixRuleLinks(hash);
+
+            window.scrollTo(left, 0);
+        }
+
+        private renderFilters(hash: UrlParams) {
+            var filterList = $('#rule-menu-filter > ul');
+            filterList.empty();
+            for (var i = 0; i < 10; i++)
+            {
+                var filter = Template.eval(Template.RuleFilterElement, { tag: this.currentAllTags[i].Tag });
+                filterList.append($(filter));
+            }
+            var others = Template.eval(Template.RuleFilterElement, { tag: 'others' });
+            filterList.append($(others));
+
+            this.applyFilters(hash);
+        }
+
+        private applyFilters(hash: UrlParams) {
+            $('#rule-menu-filter input').each((index, elem) => {
+                var input = $(elem);
+                input.prop('checked', $.inArray(input.attr('id'), hash.tags) != -1);
+            });
+
+            var tagsToFilterFor = this.getTagsToFilterFromHash(hash);
+            var tagsWithOwnCheckbox = <string[]>$('#rule-menu-filter input').map((index, element) => { return $(element).attr('id'); }).toArray();
+            tagsWithOwnCheckbox.splice(tagsWithOwnCheckbox.indexOf('others'), 1);
+
+            var filterForOthers = hash.tags.indexOf('others') != -1;
+            if (filterForOthers) {
+                tagsToFilterFor.splice(tagsToFilterFor.indexOf('others'), 1);
+                var others = this.diff($.map(this.currentAllTags, (element, index) => { return element.Tag }), tagsWithOwnCheckbox);
+                tagsToFilterFor = tagsToFilterFor.concat(others);
+            }
+
+            $('#rule-menu li').each((index, elem) => {
+                var li = $(elem);
+                var liTags = (<Rule>li.data('rule')).Tags;
+                var commonTags = this.intersect(liTags.split(','), tagsToFilterFor);
+
+                var hasNoTags = liTags.length == 0;
+                var showLiWithNoTags = hasNoTags && filterForOthers;
+                var showEverything = tagsToFilterFor.length == 0;
+                li.toggle(commonTags.length > 0 || showLiWithNoTags || showEverything);
+            });
+
+            $('#rule-menu li:visible').filter(':odd').css({ 'background-color': 'rgb(243, 243, 243)' });
+            $('#rule-menu li:visible').filter(':even').css({ 'background-color': 'white' });
+        }
+        private getTagsToFilterFromHash(hash: UrlParams):string[] {
+            var tagsToFilter = hash.tags.slice(0);
+
+            for (var i = tagsToFilter.length - 1; i >= 0; i--) {
+                if (tagsToFilter[i] === '') {
+                    tagsToFilter.splice(i, 1);
+                }
+            }
+            return tagsToFilter;
+        }
+
+        private intersect<T>(a: Array<T>, b: Array<T>): Array<T> {
+            var t;
+            if (b.length > a.length) t = b, b = a, a = t;
+            return a.filter(function (e) {
+                if (b.indexOf(e) !== -1) return true;
+            });
+        }
+        private union<T>(a: Array<T>, b: Array<T>): Array<T> {
+            var x = a.concat(b);
+            return x.filter(function (elem, index) { return x.indexOf(elem) === index; });
+        }
+        private diff<T>(a: Array<T>, b: Array<T>): Array<T> {
+            return a.filter(function (i) { return b.indexOf(i) < 0; });
+        }
+
+        private handleRuleIdError(hasMenuIssueToo: boolean) {
+            if (hasMenuIssueToo) {
+                document.getElementById("content").innerHTML = Template.eval(Template.RuleErrorPageContent, { message: 'Couldn\'t find version' });
+            }
+            else {
+                document.getElementById("content").innerHTML = Template.eval(Template.RuleErrorPageContent, { message: 'Couldn\'t find rule' });
+            }
+        }
+        private handleVersionError() {
+            this.handleRuleIdError(true);
+
+            var menu = $('#rule-menu');
+            menu.html('');
+            menu.attr('data-version', '');
+            $('#rule-menu-header').html(Template.eval(Template.RuleMenuHeaderVersionError, null));
+            $('#rule-menu-filter').html('');
+        }
+
+        public hashChanged() {
+            var hash = this.getHash(location.hash || '');
+            this.openRequestedPage(hash);
+        }
+
+        private fixRuleLinks(hash: UrlParams) {
+            $('.rule-link').each((index, elem) => {
+                var link = $(elem);
+                var currentHref = link.attr('href');
+                var newHash = this.getHash(currentHref);
+                newHash.tags = hash.tags;
+
+                link.attr('href', '#' + this.changeHash(newHash));
+            });
+        }
+
+        private getHash(input: string): UrlParams {
+            var hash: UrlParams = {
+                version: this.defaultVersion,
+                ruleId: null,
+                tags: null
+            };
+            var parsedHash = RuleController.parseHash(input);
+            if (parsedHash.version) {
+                hash.version = parsedHash.version;
+            }
+            if (parsedHash.ruleId) {
+                hash.ruleId = parsedHash.ruleId;
+            }
+            var tags = '';
+            if (parsedHash.tags) {
+                tags = <string>parsedHash.tags;
+            }
+            hash.tags = tags.split(',');
+            var emptyIndex = hash.tags.indexOf('');
+            if (emptyIndex >= 0) {
+                hash.tags.splice(emptyIndex);
+            }
+            return hash;
+        }
+        private static parseHash(input: string): any {
+            var hash = input.replace(/^#/, '').split('&'),
                 parsed = {};
 
             for (var i = 0, el; i < hash.length; i++) {
@@ -93,111 +289,31 @@ module Controllers {
             }
             return parsed;
         }
-
-        private displayMenu(hash: UrlParams) {
-            var menu = document.getElementById("rule-menu");
-            var currentVersion = menu.getAttribute("data-version");
-
-            if (currentVersion == this.currentVersion)
+        private changeHash(hash: UrlParams) : string {
+            var newHash = 'version=' + hash.version;
+            if (hash.ruleId)
             {
-                return;
+                newHash += '&ruleId=' + hash.ruleId;
             }
-
-            var listItems = '';
-            for (var i = 0; i < this.currentRules.length; i++) {
-                listItems += '<li><a href="#version=' + this.currentVersion + '&ruleId=' + this.currentRules[i].Key + '" title="' + this.currentRules[i].Title + '">' + this.currentRules[i].Title + '</a></li>';
-            }
-
-            document.getElementById("rule-version").innerHTML =
-                '<a href="index.html#version=' + this.currentVersion + '" >in version ' + this.currentVersion + '</a>';
-
-            menu.innerHTML = listItems;
-            menu.setAttribute("data-version", this.currentVersion);
-        }
-
-        private displayMainPage() {
-            var doc = document.documentElement;
-            var left = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
-
-            document.getElementById("content").innerHTML = this.currentDefaultContent;
-
-            window.scrollTo(left, 0);
-            return;
-        }
-
-        private displayRulePage(hash: UrlParams) {
-            var doc = document.documentElement;
-            var left = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
-
-            for (var i = 0; i < this.currentRules.length; i++) {
-                if (this.currentRules[i].Key == hash.ruleId) {
-                    //we have found it
-                    var ruleId = document.getElementById("rule-id");
-                    ruleId.innerHTML = 'Rule ID: ' + this.currentRules[i].Key;
-                    ruleId.style.visibility = 'visible';
-
-                    document.getElementById("rule-title").innerHTML = this.currentRules[i].Title;
-                    var tags = document.getElementById("rule-tags");
-                    tags.innerHTML = this.currentRules[i].Tags;
-                    if (this.currentRules[i].Tags) {
-                        tags.style.visibility = 'visible';
-                    }
-                    else {
-                        tags.style.visibility = 'hidden';
-                    }
-
-                    document.getElementById("rule-description").innerHTML = this.currentRules[i].Description;
-                    window.scrollTo(left, 0);
-                    return;
+            if (hash.tags) {
+                var tags = '';
+                for (var i = 0; i < hash.tags.length; i++) {
+                    tags += ',' + hash.tags[i];
                 }
-            }
-            this.handleRuleIdError(false);
-        }
-
-        private handleRuleIdError(hasMenuIssueToo: boolean) {
-            if (!hasMenuIssueToo) {
-                var ruleId = document.getElementById("rule-id");
-                ruleId.innerHTML = "ERROR: couldn't find rule";
-                ruleId.style.visibility = 'visible';
+                if (tags.length > 1) {
+                    tags = tags.substr(1);
+                }
+                newHash += '&tags=' + tags;
             }
 
-            document.getElementById("rule-title").innerHTML = "";
-            var tags = document.getElementById("rule-tags");
-            tags.innerHTML = "";
-            tags.style.visibility = 'hidden';
-            document.getElementById("rule-description").innerHTML = "";
-        }
-        private handleVersionError() {
-            this.handleRuleIdError(true);
-
-            var menu = document.getElementById("rule-menu");
-            menu.innerHTML = "";
-            menu.setAttribute("data-version", "");
-
-            var ruleId = document.getElementById("rule-id");
-            ruleId.innerHTML = "ERROR: couldn't find version";
-            ruleId.style.visibility = 'visible';
+            return newHash;
         }
 
-        public hashChanged()
-        {
-            var hash: UrlParams = {
-                version: this.defaultVersion,
-                ruleId: null
-            };
-            var parsedHash = this.parseHash();
-            if (parsedHash.version) {
-                hash.version = parsedHash.version;
-            }
-            if (parsedHash.ruleId) {
-                hash.ruleId = parsedHash.ruleId;
-            }
-            this.openRequestedPage(hash);
-        }
 
         currentVersion: string;
         currentRules: Rule[];
         currentDefaultContent: string;
+        currentAllTags: TagFrequency[];
         private getContentsForVersion(version: string, callback: Function)
         {
             if (this.currentVersion != version)
@@ -208,6 +324,40 @@ module Controllers {
                 this.getFile('../rules/' + version + '/rules.json', (jsonString) => {
                     self.currentVersion = version;
                     self.currentRules = JSON.parse(jsonString);
+
+                    self.currentAllTags = [];
+                    for (var i = 0; i < self.currentRules.length; i++)
+                    {
+                        var ruleTags = self.currentRules[i].Tags.split(',');
+                        for (var tagIndex = 0; tagIndex < ruleTags.length; tagIndex++) {
+                            var tag = ruleTags[tagIndex].trim();
+                            var found = false;
+                            for (var j = 0; j < self.currentAllTags.length; j++) {
+                                if (self.currentAllTags[j].Tag == tag) {
+                                    self.currentAllTags[j].Count++;
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found && tag != '') {
+                                self.currentAllTags.push({
+                                    Count: 1,
+                                    Tag: tag
+                                });
+                            }
+                        }
+                    }
+
+                    self.currentAllTags.sort((a, b) => {
+                        if (a.Count > b.Count) {
+                            return -1;
+                        }
+                        if (a.Count < b.Count) {
+                            return 1;
+                        }
+                        return 0;
+                    });
+
                     numberOfCompletedRequests++;
                     if (numberOfCompletedRequests == 2) {
                         callback();
@@ -225,14 +375,12 @@ module Controllers {
 
             callback();
         }
-
         private getFile(path: string, callback: Function) {
             var self = this;
             this.loadFile(path, (data) => {
                 callback(data);
             });
         }
-
         private loadFile(path: string, callback: Function) {
             var self = this;
             var xobj = new XMLHttpRequest();

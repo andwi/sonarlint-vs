@@ -43,6 +43,9 @@
     <Content Include="resources\images\vs.png" />
     <Content Include="resources\images\waves-sonarqube-256.png" />
     <Content Include="resources\images\waves-sonarqube-28.png" />
+    <Content Include="resources\scripts\Template.js">
+      <DependentUpon>Template.ts</DependentUpon>
+    </Content>
     <Content Include="rules\1.0.0\index.html" />
     <Content Include="rules\1.1.0\index.html" />
     <Content Include="rules\1.2.0\index.html" />
@@ -66,6 +69,8 @@
   <ItemGroup>
     <TypeScriptCompile Include="resources\scripts\App.ts" />
     <TypeScriptCompile Include="resources\scripts\RuleController.ts" />
+    <TypeScriptCompile Include="resources\scripts\Template.ts" />
+    <TypeScriptCompile Include="resources\scripts\typings\handlebars\handlebars.d.ts" />
     <TypeScriptCompile Include="resources\scripts\typings\jquery\jquery.d.ts" />
   </ItemGroup>
   <ItemGroup>
@@ -86,6 +91,11 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="resources\scripts\Template.js.map">
+      <DependentUpon>Template.ts</DependentUpon>
+    </Content>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">12.0</VisualStudioVersion>
