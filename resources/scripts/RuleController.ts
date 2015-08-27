@@ -8,7 +8,7 @@ interface Rule {
     Key: string;
     Title: string;
     Description: string;
-    Tags: string;
+    Tags: string[];
 }
 interface TagFrequency {
     Tag: string;
@@ -184,7 +184,7 @@ module Controllers {
             $('#rule-menu li').each((index, elem) => {
                 var li = $(elem);
                 var liTags = (<Rule>li.data('rule')).Tags;
-                var commonTags = this.splitWithTrim(liTags, ',').intersect(tagsToFilterFor);
+                var commonTags = liTags.intersect(tagsToFilterFor);
 
                 var hasNoTags = liTags.length == 0;
                 var showLiWithNoTags = hasNoTags && filterForOthers;
@@ -312,7 +312,14 @@ module Controllers {
                     self.currentAllTags = [];
                     for (var i = 0; i < self.currentRules.length; i++)
                     {
-                        var ruleTags = self.splitWithTrim(self.currentRules[i].Tags, ',');
+                        var tags = <any>self.currentRules[i].Tags;
+                        if (!Array.isArray(tags))
+                        {
+                            //handle the different versions of the input files.
+                            self.currentRules[i].Tags = self.splitWithTrim(tags, ',');
+                        }
+
+                        var ruleTags = self.currentRules[i].Tags;
                         for (var tagIndex = 0; tagIndex < ruleTags.length; tagIndex++) {
                             var tag = ruleTags[tagIndex].trim();
                             var found = false;

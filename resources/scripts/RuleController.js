@@ -125,7 +125,6 @@ var Controllers;
             this.applyFilters(hash);
         };
         RuleController.prototype.applyFilters = function (hash) {
-            var _this = this;
             $('#rule-menu-filter input').each(function (index, elem) {
                 var input = $(elem);
                 input.prop('checked', $.inArray(input.attr('id'), hash.tags) != -1);
@@ -142,7 +141,7 @@ var Controllers;
             $('#rule-menu li').each(function (index, elem) {
                 var li = $(elem);
                 var liTags = li.data('rule').Tags;
-                var commonTags = _this.splitWithTrim(liTags, ',').intersect(tagsToFilterFor);
+                var commonTags = liTags.intersect(tagsToFilterFor);
                 var hasNoTags = liTags.length == 0;
                 var showLiWithNoTags = hasNoTags && filterForOthers;
                 var showEverything = tagsToFilterFor.length == 0;
@@ -252,7 +251,12 @@ var Controllers;
                     self.currentRules = JSON.parse(jsonString);
                     self.currentAllTags = [];
                     for (var i = 0; i < self.currentRules.length; i++) {
-                        var ruleTags = self.splitWithTrim(self.currentRules[i].Tags, ',');
+                        var tags = self.currentRules[i].Tags;
+                        if (!Array.isArray(tags)) {
+                            //handle the different versions of the input files.
+                            self.currentRules[i].Tags = self.splitWithTrim(tags, ',');
+                        }
+                        var ruleTags = self.currentRules[i].Tags;
                         for (var tagIndex = 0; tagIndex < ruleTags.length; tagIndex++) {
                             var tag = ruleTags[tagIndex].trim();
                             var found = false;
