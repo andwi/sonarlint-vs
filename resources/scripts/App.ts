@@ -23,5 +23,5 @@ class App {
 }
 
 window.onload = () => {
-    App.Controller = new Controllers.RuleController("1.2.0");
+    App.Controller = new Controllers.RuleController();
 }

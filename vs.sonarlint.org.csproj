@@ -35,6 +35,10 @@
     <Content Include="resources\css\main.css" />
     <Content Include="resources\css\reset.css" />
     <Content Include="resources\images\roslyn.png" />
+    <Content Include="resources\scripts\Array.js">
+      <DependentUpon>Array.ts</DependentUpon>
+    </Content>
+    <Content Include="resources\scripts\handlebars-3.0.3.min.js" />
     <Content Include="resources\scripts\jquery-2.1.4.min.js" />
     <Content Include="resources\scripts\RuleController.js">
       <DependentUpon>RuleController.ts</DependentUpon>
@@ -67,6 +71,7 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="resources\scripts\Array.ts" />
     <TypeScriptCompile Include="resources\scripts\App.ts" />
     <TypeScriptCompile Include="resources\scripts\RuleController.ts" />
     <TypeScriptCompile Include="resources\scripts\Template.ts" />
@@ -95,6 +100,11 @@
   <ItemGroup>
     <Content Include="resources\scripts\Template.js.map">
       <DependentUpon>Template.ts</DependentUpon>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="resources\scripts\Array.js.map">
+      <DependentUpon>Array.ts</DependentUpon>
     </Content>
   </ItemGroup>
   <PropertyGroup>

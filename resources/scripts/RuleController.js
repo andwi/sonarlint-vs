@@ -1,8 +1,7 @@
 var Controllers;
 (function (Controllers) {
     var RuleController = (function () {
-        function RuleController(defaultVersion) {
-            this.defaultVersion = defaultVersion;
+        function RuleController() {
             var hash = this.getHash(location.hash || '');
             this.openRequestedPage(hash);
             this.handleSidebarResizing();
@@ -126,7 +125,6 @@ var Controllers;
             this.applyFilters(hash);
         };
         RuleController.prototype.applyFilters = function (hash) {
-            var _this = this;
             $('#rule-menu-filter input').each(function (index, elem) {
                 var input = $(elem);
                 input.prop('checked', $.inArray(input.attr('id'), hash.tags) != -1);
@@ -137,13 +135,13 @@ var Controllers;
             var filterForOthers = hash.tags.indexOf('others') != -1;
             if (filterForOthers) {
                 tagsToFilterFor.splice(tagsToFilterFor.indexOf('others'), 1);
-                var others = this.diff($.map(this.currentAllTags, function (element, index) { return element.Tag; }), tagsWithOwnCheckbox);
+                var others = $.map(this.currentAllTags, function (element, index) { return element.Tag; }).diff(tagsWithOwnCheckbox);
                 tagsToFilterFor = tagsToFilterFor.concat(others);
             }
             $('#rule-menu li').each(function (index, elem) {
                 var li = $(elem);
                 var liTags = li.data('rule').Tags;
-                var commonTags = _this.intersect(liTags.split(','), tagsToFilterFor);
+                var commonTags = liTags.split(',').intersect(tagsToFilterFor);
                 var hasNoTags = liTags.length == 0;
                 var showLiWithNoTags = hasNoTags && filterForOthers;
                 var showEverything = tagsToFilterFor.length == 0;
@@ -161,22 +159,6 @@ var Controllers;
             }
             return tagsToFilter;
         };
-        RuleController.prototype.intersect = function (a, b) {
-            var t;
-            if (b.length > a.length)
-                t = b, b = a, a = t;
-            return a.filter(function (e) {
-                if (b.indexOf(e) !== -1)
-                    return true;
-            });
-        };
-        RuleController.prototype.union = function (a, b) {
-            var x = a.concat(b);
-            return x.filter(function (elem, index) { return x.indexOf(elem) === index; });
-        };
-        RuleController.prototype.diff = function (a, b) {
-            return a.filter(function (i) { return b.indexOf(i) < 0; });
-        };
         RuleController.prototype.handleRuleIdError = function (hasMenuIssueToo) {
             if (hasMenuIssueToo) {
                 document.getElementById("content").innerHTML = Template.eval(Template.RuleErrorPageContent, { message: 'Couldn\'t find version' });
@@ -193,10 +175,6 @@ var Controllers;
             $('#rule-menu-header').html(Template.eval(Template.RuleMenuHeaderVersionError, null));
             $('#rule-menu-filter').html('');
         };
-        RuleController.prototype.hashChanged = function () {
-            var hash = this.getHash(location.hash || '');
-            this.openRequestedPage(hash);
-        };
         RuleController.prototype.fixRuleLinks = function (hash) {
             var _this = this;
             $('.rule-link').each(function (index, elem) {
@@ -209,7 +187,7 @@ var Controllers;
         };
         RuleController.prototype.getHash = function (input) {
             var hash = {
-                version: this.defaultVersion,
+                version: RuleController.defaultVersion,
                 ruleId: null,
                 tags: null
             };
@@ -255,6 +233,10 @@ var Controllers;
                 newHash += '&tags=' + tags;
             }
             return newHash;
+        };
+        RuleController.prototype.hashChanged = function () {
+            var hash = this.getHash(location.hash || '');
+            this.openRequestedPage(hash);
         };
         RuleController.prototype.getContentsForVersion = function (version, callback) {
             if (this.currentVersion != version) {
@@ -330,6 +312,7 @@ var Controllers;
             };
             xobj.send(null);
         };
+        RuleController.defaultVersion = '1.2.0';
         return RuleController;
     })();
     Controllers.RuleController = RuleController;

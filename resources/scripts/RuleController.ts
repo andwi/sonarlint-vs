@@ -17,9 +17,12 @@ interface TagFrequency {
 
 module Controllers {
     export class RuleController {
-        defaultVersion: string;
-        constructor(defaultVersion: string) {
-            this.defaultVersion = defaultVersion;
+        static defaultVersion: string = '1.2.0';
+        currentVersion: string;
+        currentRules: Rule[];
+        currentDefaultContent: string;
+        currentAllTags: TagFrequency[];
+        constructor() {
             var hash = this.getHash(location.hash || '');
             this.openRequestedPage(hash);
             this.handleSidebarResizing();
@@ -35,7 +38,6 @@ module Controllers {
                 location.hash = this.changeHash(newHash);
             });
         }
-
         private getFilterSettings(): string[] {
             var turnedOnFilters = [];
             var inputs = $('#rule-menu-filter ul input');
@@ -139,7 +141,6 @@ module Controllers {
             }
             this.handleRuleIdError(false);
         }
-
         private renderMainContent(content: string, hash: UrlParams) {
             var doc = document.documentElement;
             var left = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
@@ -149,7 +150,6 @@ module Controllers {
 
             window.scrollTo(left, 0);
         }
-
         private renderFilters(hash: UrlParams) {
             var filterList = $('#rule-menu-filter > ul');
             filterList.empty();
@@ -177,14 +177,14 @@ module Controllers {
             var filterForOthers = hash.tags.indexOf('others') != -1;
             if (filterForOthers) {
                 tagsToFilterFor.splice(tagsToFilterFor.indexOf('others'), 1);
-                var others = this.diff($.map(this.currentAllTags, (element, index) => { return element.Tag }), tagsWithOwnCheckbox);
+                var others = $.map(this.currentAllTags, (element, index) => { return element.Tag }).diff(tagsWithOwnCheckbox);
                 tagsToFilterFor = tagsToFilterFor.concat(others);
             }
 
             $('#rule-menu li').each((index, elem) => {
                 var li = $(elem);
                 var liTags = (<Rule>li.data('rule')).Tags;
-                var commonTags = this.intersect(liTags.split(','), tagsToFilterFor);
+                var commonTags = liTags.split(',').intersect(tagsToFilterFor);
 
                 var hasNoTags = liTags.length == 0;
                 var showLiWithNoTags = hasNoTags && filterForOthers;
@@ -206,21 +206,6 @@ module Controllers {
             return tagsToFilter;
         }
 
-        private intersect<T>(a: Array<T>, b: Array<T>): Array<T> {
-            var t;
-            if (b.length > a.length) t = b, b = a, a = t;
-            return a.filter(function (e) {
-                if (b.indexOf(e) !== -1) return true;
-            });
-        }
-        private union<T>(a: Array<T>, b: Array<T>): Array<T> {
-            var x = a.concat(b);
-            return x.filter(function (elem, index) { return x.indexOf(elem) === index; });
-        }
-        private diff<T>(a: Array<T>, b: Array<T>): Array<T> {
-            return a.filter(function (i) { return b.indexOf(i) < 0; });
-        }
-
         private handleRuleIdError(hasMenuIssueToo: boolean) {
             if (hasMenuIssueToo) {
                 document.getElementById("content").innerHTML = Template.eval(Template.RuleErrorPageContent, { message: 'Couldn\'t find version' });
@@ -239,11 +224,6 @@ module Controllers {
             $('#rule-menu-filter').html('');
         }
 
-        public hashChanged() {
-            var hash = this.getHash(location.hash || '');
-            this.openRequestedPage(hash);
-        }
-
         private fixRuleLinks(hash: UrlParams) {
             $('.rule-link').each((index, elem) => {
                 var link = $(elem);
@@ -257,7 +237,7 @@ module Controllers {
 
         private getHash(input: string): UrlParams {
             var hash: UrlParams = {
-                version: this.defaultVersion,
+                version: RuleController.defaultVersion,
                 ruleId: null,
                 tags: null
             };
@@ -308,12 +288,11 @@ module Controllers {
 
             return newHash;
         }
+        public hashChanged() {
+            var hash = this.getHash(location.hash || '');
+            this.openRequestedPage(hash);
+        }
 
-
-        currentVersion: string;
-        currentRules: Rule[];
-        currentDefaultContent: string;
-        currentAllTags: TagFrequency[];
         private getContentsForVersion(version: string, callback: Function)
         {
             if (this.currentVersion != version)
