@@ -52,8 +52,8 @@ header {
 }
 
     header nav {
-        height: 40px;
-        border-bottom: 1px solid #e6e6e6;
+        height: 39px;
+        /*border-bottom: 1px solid #e6e6e6;*/
     }
 
 header:after {
@@ -122,6 +122,8 @@ h2 {
 h2 {
     font-size: 25px;
 }
+
+
 
 @media (max-width: 1000px) {
     header, main, footer, #body, section.split, html, body {

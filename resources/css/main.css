@@ -88,10 +88,24 @@ section.split.last {
 
 /*header - start*/
 
+#nav-div{
+    position: fixed;
+    left: 0;
+    background-color: rgb(243, 243, 243);
+    border-bottom: 1px solid #e6e6e6;
+}
 
+nav {
+    max-width: 1000px;
+    min-width: 1000px;
+    margin: 0 auto;
+}
 
 header > div {
-    padding-top: 40px;
+    width: 100%;
+}
+#header {
+    padding-top: 80px;
 }
 
 header .short-description {
