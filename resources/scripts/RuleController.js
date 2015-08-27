@@ -125,6 +125,7 @@ var Controllers;
             this.applyFilters(hash);
         };
         RuleController.prototype.applyFilters = function (hash) {
+            var _this = this;
             $('#rule-menu-filter input').each(function (index, elem) {
                 var input = $(elem);
                 input.prop('checked', $.inArray(input.attr('id'), hash.tags) != -1);
@@ -141,7 +142,7 @@ var Controllers;
             $('#rule-menu li').each(function (index, elem) {
                 var li = $(elem);
                 var liTags = li.data('rule').Tags;
-                var commonTags = liTags.split(',').intersect(tagsToFilterFor);
+                var commonTags = _this.splitWithTrim(liTags, ',').intersect(tagsToFilterFor);
                 var hasNoTags = liTags.length == 0;
                 var showLiWithNoTags = hasNoTags && filterForOthers;
                 var showEverything = tagsToFilterFor.length == 0;
@@ -149,6 +150,9 @@ var Controllers;
             });
             $('#rule-menu li:visible').filter(':odd').css({ 'background-color': 'rgb(243, 243, 243)' });
             $('#rule-menu li:visible').filter(':even').css({ 'background-color': 'white' });
+        };
+        RuleController.prototype.splitWithTrim = function (text, splitter) {
+            return $.map(text.split(splitter), function (elem, index) { return elem.trim(); });
         };
         RuleController.prototype.getTagsToFilterFromHash = function (hash) {
             var tagsToFilter = hash.tags.slice(0);
@@ -202,7 +206,7 @@ var Controllers;
             if (parsedHash.tags) {
                 tags = parsedHash.tags;
             }
-            hash.tags = tags.split(',');
+            hash.tags = this.splitWithTrim(tags, ',');
             var emptyIndex = hash.tags.indexOf('');
             if (emptyIndex >= 0) {
                 hash.tags.splice(emptyIndex);
@@ -248,7 +252,7 @@ var Controllers;
                     self.currentRules = JSON.parse(jsonString);
                     self.currentAllTags = [];
                     for (var i = 0; i < self.currentRules.length; i++) {
-                        var ruleTags = self.currentRules[i].Tags.split(',');
+                        var ruleTags = self.splitWithTrim(self.currentRules[i].Tags, ',');
                         for (var tagIndex = 0; tagIndex < ruleTags.length; tagIndex++) {
                             var tag = ruleTags[tagIndex].trim();
                             var found = false;

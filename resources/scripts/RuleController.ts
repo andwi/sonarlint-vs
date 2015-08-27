@@ -184,7 +184,7 @@ module Controllers {
             $('#rule-menu li').each((index, elem) => {
                 var li = $(elem);
                 var liTags = (<Rule>li.data('rule')).Tags;
-                var commonTags = liTags.split(',').intersect(tagsToFilterFor);
+                var commonTags = this.splitWithTrim(liTags, ',').intersect(tagsToFilterFor);
 
                 var hasNoTags = liTags.length == 0;
                 var showLiWithNoTags = hasNoTags && filterForOthers;
@@ -195,6 +195,11 @@ module Controllers {
             $('#rule-menu li:visible').filter(':odd').css({ 'background-color': 'rgb(243, 243, 243)' });
             $('#rule-menu li:visible').filter(':even').css({ 'background-color': 'white' });
         }
+
+        private splitWithTrim(text: string, splitter: string): string[]{
+            return $.map(text.split(splitter), (elem, index) => { return elem.trim(); });
+        }
+
         private getTagsToFilterFromHash(hash: UrlParams):string[] {
             var tagsToFilter = hash.tags.slice(0);
 
@@ -252,7 +257,7 @@ module Controllers {
             if (parsedHash.tags) {
                 tags = <string>parsedHash.tags;
             }
-            hash.tags = tags.split(',');
+            hash.tags = this.splitWithTrim(tags, ',');
             var emptyIndex = hash.tags.indexOf('');
             if (emptyIndex >= 0) {
                 hash.tags.splice(emptyIndex);
@@ -307,7 +312,7 @@ module Controllers {
                     self.currentAllTags = [];
                     for (var i = 0; i < self.currentRules.length; i++)
                     {
-                        var ruleTags = self.currentRules[i].Tags.split(',');
+                        var ruleTags = self.splitWithTrim(self.currentRules[i].Tags, ',');
                         for (var tagIndex = 0; tagIndex < ruleTags.length; tagIndex++) {
                             var tag = ruleTags[tagIndex].trim();
                             var found = false;
