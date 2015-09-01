@@ -19,6 +19,8 @@ footer{
 
 header {
     border-bottom: 1px solid #e6e6e6;
+    min-width: 100%;
+    max-width: 100%;
 }
 
 header nav {
@@ -258,6 +260,20 @@ nav a:hover {
 
     main{
         width: 1000px;
+    }
+
+    header nav {
+        max-width: 100%;
+        min-width: 100%;
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 600px) {
+    header nav {
+        max-width: 600px;
+        min-width: 600px;
+        margin: 0 auto;
     }
 }
 

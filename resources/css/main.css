@@ -351,4 +351,18 @@ section.split ul {
         margin-left: 0;
         margin: 0 auto;
     }
+
+    nav {
+        max-width: 100%;
+        min-width: 100%;
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 600px) {
+    nav {
+        max-width: 600px;
+        min-width: 600px;
+        margin: 0 auto;
+    }
 }

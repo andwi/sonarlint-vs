@@ -8,7 +8,7 @@
                 '<h1 id="rule-title">{{Title}}</h1>' +
                 '<span id="rule-id" class="id">Rule ID: {{Key}}</span>' +
                 '<div class="rules-detail-properties">' +
-                    '<span class="tags" id="rule-tags" style="{{{rule-tags-visibility Tags}}}">{{Tags}}</span>' +
+                    '<span class="tags" id="rule-tags" style="{{{rule-tags-visibility Tags}}}">{{rule-tags-render Tags}}</span>' +
                 '</div>' +
             '</div>' +
             '<div class="rule-description" id="rule-description">{{{Description}}}</div>' +
@@ -29,6 +29,10 @@
                 return 'visibility: hidden;'
             }
             return '';
+        });
+
+        Handlebars.registerHelper('rule-tags-render', function (tags) {
+            return tags.join(', ');
         });
 
         Template.RuleMenuItem = Handlebars.compile(Template.RuleMenuItem);
