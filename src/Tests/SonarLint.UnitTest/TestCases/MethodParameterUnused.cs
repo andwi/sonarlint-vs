@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace Tests.TestCases
 {
@@ -23,6 +20,26 @@ namespace Tests.TestCases
 
     class MethodParameterUnused : Base, IMy
     {
+        public event EventHandler MyEvent;
+
+        public MethodParameterUnused()
+        {
+            // AddAssignmentExpression
+            MyEvent += MethodParameterUnused_MyEvent;
+
+            // VariableDeclarator
+            WaitCallback c = W1;
+
+            // SimpleAssignmentExpression
+            c = W2;
+
+            // Argument
+            ThreadPool.QueueUserWorkItem(W3);
+
+            // InvocationExpression
+            W4(null);
+        }
+
         public void M1(int a) //Noncompliant
         {
         }
@@ -42,5 +59,25 @@ namespace Tests.TestCases
 
         public void M4(int a) //okay
         { }
+
+        private void MethodParameterUnused_MyEvent(object sender, EventArgs e)
+        {
+        }
+
+        static void W1(object state)
+        {
+        }
+
+        static void W2(object state)
+        {
+        }
+
+        static void W3(object state)
+        {
+        }
+
+        static void W4(object state) //Noncompliant
+        {
+        }
     }
 }

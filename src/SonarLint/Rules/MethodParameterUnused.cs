@@ -58,11 +58,15 @@ namespace SonarLint.Rules
 
         public override void Initialize(AnalysisContext context)
         {
-            context.RegisterCodeBlockStartActionInNonGenerated<SyntaxKind>(
-                cbc =>
+            context.RegisterCompilationStartAction(cs =>
+            {
+                var unusedParameters = ImmutableDictionary<IMethodSymbol, ImmutableArray<IParameterSymbol>>.Empty;
+                var referencedMethods = ImmutableHashSet<IMethodSymbol>.Empty;
+
+                cs.RegisterCodeBlockStartAction<SyntaxKind>(cbs =>
                 {
-                    var methodDeclaration = cbc.CodeBlock as MethodDeclarationSyntax;
-                    var methodSymbol = cbc.OwningSymbol as IMethodSymbol;
+                    var methodDeclaration = cbs.CodeBlock as MethodDeclarationSyntax;
+                    var methodSymbol = cbs.OwningSymbol as IMethodSymbol;
                     if (methodDeclaration == null ||
                         methodSymbol == null ||
                         !IsMethodCandidate(methodSymbol))
@@ -72,42 +76,68 @@ namespace SonarLint.Rules
 
                     var usedParameters = ImmutableHashSet<IParameterSymbol>.Empty;
 
-                    cbc.RegisterSyntaxNodeAction(
-                        c =>
+                    cbs.RegisterSyntaxNodeAction(sn =>
+                    {
+                        var identifier = (IdentifierNameSyntax)sn.Node;
+                        var parameter = sn.SemanticModel.GetSymbolInfo(identifier).Symbol as IParameterSymbol;
+                        if (parameter != null &&
+                            methodSymbol.Parameters.Contains(parameter))
                         {
-                            var identifier = (IdentifierNameSyntax)c.Node;
-                            var parameter = c.SemanticModel.GetSymbolInfo(identifier).Symbol as IParameterSymbol;
-                            if (parameter != null &&
-                                methodSymbol.Parameters.Contains(parameter))
-                            {
-                                usedParameters = usedParameters.Add(parameter);
-                            }
-                        },
-                        SyntaxKind.IdentifierName);
+                            usedParameters = usedParameters.Add(parameter);
+                        }
+                    },
+                    SyntaxKind.IdentifierName);
 
-                    cbc.RegisterCodeBlockEndAction(
-                        c =>
+                    cbs.RegisterCodeBlockEndAction(cb =>
+                    {
+                        var unused = methodSymbol.Parameters.Except(usedParameters).ToImmutableArray();
+                        if (unused.Length > 0)
                         {
-                            var unusedParameters = methodSymbol.Parameters.Except(usedParameters);
-                            foreach (var unusedParameter in unusedParameters)
-                            {
-                                var reference = unusedParameter.DeclaringSyntaxReferences.FirstOrDefault();
-                                if (reference == null)
-                                {
-                                    continue;
-                                }
-
-                                var parameter = reference.GetSyntax() as ParameterSyntax;
-                                if (parameter == null)
-                                {
-                                    continue;
-                                }
-
-                                var location = parameter.Identifier.GetLocation();
-                                c.ReportDiagnostic(Diagnostic.Create(Rule, location, unusedParameter.Name));
-                            }
-                        });
+                            unusedParameters = unusedParameters.Add(methodSymbol, unused);
+                        }
+                    });
                 });
+
+                cs.RegisterSyntaxNodeAction(sn =>
+                {
+                    var identifier = (IdentifierNameSyntax)sn.Node;
+                    if (identifier.Parent is InvocationExpressionSyntax)
+                    {
+                        return;
+                    }
+
+                    var methodSymbol = sn.SemanticModel.GetSymbolInfo(identifier).Symbol as IMethodSymbol;
+                    if (methodSymbol != null)
+                    {
+                        referencedMethods = referencedMethods.Add(methodSymbol);
+                    }
+                },
+                SyntaxKind.IdentifierName);
+
+                cs.RegisterCompilationEndAction(c =>
+                {
+                    foreach (var methodSymbol in unusedParameters.Keys.Except(referencedMethods))
+                    {
+                        foreach (var unusedParameter in unusedParameters[methodSymbol])
+                        {
+                            var reference = unusedParameter.DeclaringSyntaxReferences.FirstOrDefault();
+                            if (reference == null)
+                            {
+                                continue;
+                            }
+
+                            var parameter = reference.GetSyntax() as ParameterSyntax;
+                            if (parameter == null)
+                            {
+                                continue;
+                            }
+
+                            var location = parameter.Identifier.GetLocation();
+                            c.ReportDiagnosticIfNonGenerated(Diagnostic.Create(Rule, location, unusedParameter.Name));
+                        }
+                    }
+                });
+            });
         }
 
         private static bool IsMethodCandidate(IMethodSymbol methodSymbol)
